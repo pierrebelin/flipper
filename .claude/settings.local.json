@@ -3,7 +3,8 @@
     "allow": [
       "Bash(pio:*)",
       "Bash(platformio:*)",
-      "Update"
+      "Update",
+      "Write"
     ],
     "deny": []
   }

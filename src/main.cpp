@@ -1,53 +1,71 @@
 #include "mbed.h"
+#include "SevenSegmentDisplay.h"
 
-// Initialisation explicite du port série pour les logs
-UnbufferedSerial pc(USBTX, USBRX, 9600); // TX, RX, baudrate
+// Serial port for debugging
+UnbufferedSerial pc(USBTX, USBRX, 9600);
 
 void log(const char* msg) {
     pc.write(msg, strlen(msg));
 }
 
-int main()
-{
-    // Bouton poussoir connecté sur PA_5 (D13) avec pull-down
-    // Note: E5V mentionné dans la demande, j'utilise PA_5 comme pin digital standard
-    DigitalIn pushButton(PA_5, PullDown);
+int main() {
+    // Hardware configuration according to CLAUDE.md
+    DigitalIn resetButton(BUTTON1);           // Built-in button (resets counter)
+    DigitalIn toggleButton(PC_10, PullUp);    // Toggle button (increments counter)
+    DigitalIn pirSensor(PA_6, PullDown);      // PIR motion sensor (increments counter)
     
-    // Sortie pour contrôler le MOSFET du solénoïde 12V sur PA7 (D11)
-    DigitalOut solenoidControl(PA_7);
+    // 7-segment display: PA_10, PB_3, PB_5, PB_4, PB_10, PA_8, PA_9 (segments A-G)
+    SevenSegmentDisplay display(PA_10, PB_3, PB_5, PB_4, PB_10, PA_8, PA_9);
     
-    // Variables pour le debouncing
-    bool lastButtonState = false;
-    bool solenoidActive = false;
+    // State variables
+    int counter = 0;
+    bool lastResetState = false;
+    bool lastToggleState = false;
+    bool lastPirState = false;
     
-    // Initialisation
-    solenoidControl = 0; // MOSFET désactivé au démarrage
-    log("[INIT] Système de contrôle solénoïde initialisé\r\n");
-    log("[INFO] Bouton: PA_5 (D13), Solénoïde: PA_7 (D11)\r\n");
-
+    // Initialize display to show 0
+    display.displayDigit(0);
+    log("[INIT] Flipper system initialized - Counter: 0\r\n");
+    
     while (true) {
-        // Lecture de l'état actuel du bouton
-        bool currentButtonState = pushButton.read();
+        // Read current states
+        bool currentResetState = resetButton.read();
+        bool currentToggleState = !toggleButton.read();  // Inverted because of PullUp
+        bool currentPirState = pirSensor.read();
         
-        // Détection d'un front montant (bouton pressé)
-        if (currentButtonState && !lastButtonState) {
-            if (!solenoidActive) {
-                // Activation du solénoïde
-                solenoidControl = 1;
-                solenoidActive = true;
-                log("[SOLENOID] Activation du solénoïde\r\n");
-            } else {
-                // Désactivation du solénoïde
-                solenoidControl = 0;
-                solenoidActive = false;
-                log("[SOLENOID] Désactivation du solénoïde\r\n");
-            }
+        // Reset button detection (falling edge for built-in button)
+        if (!currentResetState && lastResetState) {
+            counter = 0;
+            display.displayDigit(counter);
+            log("[RESET] Counter reset to 0\r\n");
         }
         
-        // Sauvegarde de l'état du bouton pour le prochain cycle
-        lastButtonState = currentButtonState;
+        // Toggle button detection (rising edge)
+        if (currentToggleState && !lastToggleState) {
+            counter = (counter + 1) % 10;  // Keep counter 0-9
+            display.displayDigit(counter);
+            log("[TOGGLE] Counter incremented to ");
+            char buffer[10];
+            sprintf(buffer, "%d\r\n", counter);
+            log(buffer);
+        }
         
-        // Délai pour éviter le rebond et réduire la charge CPU
+        // PIR sensor detection (rising edge)
+        if (currentPirState && !lastPirState) {
+            counter = (counter + 1) % 10;  // Keep counter 0-9
+            display.displayDigit(counter);
+            log("[PIR] Motion detected - Counter incremented to ");
+            char buffer[10];
+            sprintf(buffer, "%d\r\n", counter);
+            log(buffer);
+        }
+        
+        // Save current states for next iteration
+        lastResetState = currentResetState;
+        lastToggleState = currentToggleState;
+        lastPirState = currentPirState;
+        
+        // Debouncing delay
         ThisThread::sleep_for(50ms);
     }
 }
