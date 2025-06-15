@@ -1,0 +1,11 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "shell",
+			"label": "Test PIR detection",
+			"command": "pio test -e nucleo_f411re --filter test_pir.cpp",
+			"group": "test"
+		}
+	]
+}

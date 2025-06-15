@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pio:*)",
+      "Bash(platformio:*)",
+      "Update"
+    ],
+    "deny": []
+  }
+}
