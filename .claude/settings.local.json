@@ -3,8 +3,9 @@
     "allow": [
       "Bash(pio:*)",
       "Bash(platformio:*)",
-      "Update",
-      "Write"
+      "Edit",
+      "Write",
+      "WebFetch(domain:docs.nordicsemi.com)"
     ],
     "deny": []
   }

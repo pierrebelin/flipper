@@ -13,9 +13,7 @@ The count is displayed on a 7-segment display and ranges from 0-9.
 
 ## Build Commands
 
-The project uses PlatformIO for building and deployment:
-Do not upload/run the project, I'll do it manually.
-Always add verbose to pio commands.
+NEVER use the command `pio run`. Ask me to check the syntax errors.
 
 ## Hardware Configuration
 

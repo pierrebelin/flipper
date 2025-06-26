@@ -8,6 +8,19 @@ void log(const char* msg) {
     pc.write(msg, strlen(msg));
 }
 
+void triggerSolenoid(DigitalOut& solenoid, int durationMs = 500) {
+    solenoid = 1;  // Activate solenoid
+    log("[SOLENOID] Activated for ");
+    char buffer[20];
+    sprintf(buffer, "%dms\r\n", durationMs);
+    log(buffer);
+    
+    ThisThread::sleep_for(chrono::milliseconds(durationMs));
+    
+    solenoid = 0;  // Deactivate solenoid
+    log("[SOLENOID] Deactivated\r\n");
+}
+
 int main() {
     // Hardware configuration according to CLAUDE.md
     DigitalIn resetButton(BUTTON1);           // Built-in button (resets counter)
@@ -17,6 +30,9 @@ int main() {
     // 7-segment display: PA_10, PB_3, PB_5, PB_4, PB_10, PA_8, PA_9 (segments A-G)
     SevenSegmentDisplay display(PA_10, PB_3, PB_5, PB_4, PB_10, PA_8, PA_9);
     
+    // Solenoid control via MOSFET on PA7 (D11)
+    DigitalOut solenoidControl(PA_7);
+    
     // State variables
     int counter = 0;
     bool lastResetState = false;
@@ -25,6 +41,7 @@ int main() {
     
     // Initialize display to show 0
     display.displayDigit(0);
+    solenoidControl = 0;  // Ensure solenoid is off at startup
     log("[INIT] Flipper system initialized - Counter: 0\r\n");
     
     while (true) {
@@ -48,6 +65,7 @@ int main() {
             char buffer[10];
             sprintf(buffer, "%d\r\n", counter);
             log(buffer);
+            triggerSolenoid(solenoidControl);
         }
         
         // PIR sensor detection (rising edge)
