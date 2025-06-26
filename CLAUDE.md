@@ -4,41 +4,46 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a "flipper" project for the STM32 NUCLEO-F411RE microcontroller using the Mbed framework. The device counts detections from multiple sources:
-- A push button (resets counter)
-- A toggle button (increments counter)  
+This is a "flipper" project for the STM32 NUCLEO-F411RE microcontroller using the Mbed framework. The device counts detections from multiple sources and triggers a solenoid mechanism:
+- A push button (resets counter to 0)
+- A toggle button (increments counter, triggers solenoid)  
 - A PIR motion sensor (increments counter)
 
-The count is displayed on a 7-segment display and ranges from 0-9.
+The count is displayed on both a 7-segment display (single digit) and optionally a 4-digit display, with counter range 0-9999.
 
-## Build Commands
+## Build and Development Commands   
 
-NEVER use the command `pio run`. Ask me to check the syntax errors.
+NEVER run pio or platform command. Always ask me to do it.
 
 ## Hardware Configuration
 
 - **Board**: STM32 NUCLEO-F411RE
-- **Framework**: Mbed
-- **Main button**: BUTTON1 (built-in)
-- **Toggle button**: PC_10 (with PullUp)
-- **PIR sensor**: PA_6/D12 (with PullDown)
-- **7-segment display**: Connected to pins PA_10, PB_3, PB_5, PB_4, PB_10, PA_8, PA_9 (segments A-G)
+- **Framework**: Mbed OS
+- **Main button**: BUTTON1 (built-in, resets counter)
+- **Toggle button**: PC_10 (with PullUp, increments counter)
+- **PIR sensor**: D12/PA_6 (with PullDown, increments counter)
+- **Solenoid control**: PA_7 (D11, triggered by toggle button)
+- **7-segment display**: D2-D8 (segments A-G)
+- **4-digit display**: CN10 connector with multiplexed segments and digit selectors
 - **Serial logging**: USBTX/USBRX at 9600 baud for debugging
 
 ## Code Architecture
 
-The main application (`src/main.cpp`) implements a simple state machine that:
-1. Polls three input sources in the main loop
-2. Handles button debouncing and edge detection
-3. Updates a digit counter (0-9) based on inputs
-4. Displays the current count on the 7-segment display
-5. Logs events via serial for debugging
+### Main Application (`src/main.cpp`)
+Implements a polling-based state machine that:
+1. Reads three input sources with debouncing (50ms delay)
+2. Detects rising/falling edges for event triggering
+3. Manages a 4-digit counter (0-9999) with wraparound
+4. Controls dual display outputs and solenoid activation
+5. Provides serial logging for all events
 
-The `SevenSegmentDisplay` class (`src/SevenSegmentDisplay.h/cpp`) encapsulates:
-- Pin management for all 7 segments (A-G)
-- Digit pattern definitions for 0-9
-- Display control methods
+### Display Classes
+- **`SevenSegmentDisplay`** (`src/SevenSegmentDisplay.h/cpp`): Single 7-segment display showing last digit only
+- **`FourDigitDisplay`** (`src/FourDigitDisplay.h/cpp`): 4-digit multiplexed display with ticker-based refresh
+
+### Hardware Multiplexing
+The 4-digit display uses time-division multiplexing with shared segment pins and individual digit selector pins (cathode switching). Pin mappings are documented in `AFFICHAGE-4-CHIFFRES.md`.
 
 ## Testing
 
-Tests use the Unity framework and are located in the `test/` directory. The test structure includes a basic test template for PIR functionality.
+Tests use the Unity framework and are located in the `test/` directory. Current test structure includes basic functionality tests.
