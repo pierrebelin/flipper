@@ -9,17 +9,10 @@ void log(const char* msg) {
     pc.write(msg, strlen(msg));
 }
 
-void triggerSolenoid(DigitalOut& solenoid, int durationMs = 500) {
-    solenoid = 1;  // Activate solenoid
-    log("[SOLENOID] Activated for ");
-    char buffer[20];
-    sprintf(buffer, "%dms\r\n", durationMs);
-    log(buffer);
-    
+void triggerSolenoid(PwmOut& solenoid, int durationMs = 200) {
+    solenoid.write(0.0f); 
     ThisThread::sleep_for(chrono::milliseconds(durationMs));
-    
-    solenoid = 0;  // Deactivate solenoid
-    log("[SOLENOID] Deactivated\r\n");
+    solenoid.write(1.0f);  
 }
 
 int main() {
@@ -37,8 +30,10 @@ int main() {
     FourDigitDisplay fourDigitDisplay(PC_8, PC_6, PC_5, PA_12, PA_11, PB_2, PB_1,
                                       PB_15, PB_14, PB_13, PC_4);
     
-    // Solenoid control via MOSFET on PA7 (D11)
-    DigitalOut solenoidControl(PA_7);
+    // Solenoid control via PWM MOSFET module on PA7 (D11) - Module needs 4-20V input!
+    // ATTENTION: Le module nécessite 4-20V, PA_7 ne donne que 3.3V
+    PwmOut solenoidControl(PA_7);
+    solenoidControl.period(0.020f); // 20ms = 50Hz (fréquence standard)
 
     // State variables
     int counter = 0;
@@ -51,7 +46,7 @@ int main() {
     fourDigitDisplay.displayNumber(0);
     fourDigitDisplay.startMultiplexing();
     
-    solenoidControl = 0;  // Ensure solenoid is off at startup
+    solenoidControl.write(1.0f);  // PWM module: 0% duty cycle = OFF (default state) 
     log("[INIT] Flipper system initialized - All segments ON for testing\r\n");
     
     while (true) {
